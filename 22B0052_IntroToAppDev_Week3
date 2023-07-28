@@ -1,0 +1,653 @@
+
+// *********    main.dart page    ***********
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
+import 'Signin_page.dart';
+
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: SignIn_Screen(),
+    );
+  }
+}
+
+
+
+// *********    Sign In Page    ***********
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:login/HomePage_New.dart';
+import 'package:login/Home_page.dart';
+import 'Signup_page.dart';
+import 'Widgets_page.dart';
+
+class SignIn_Screen extends StatefulWidget {
+  const SignIn_Screen({super.key});
+
+  @override
+  State<SignIn_Screen> createState() => _SignIn_ScreenState();
+}
+
+class _SignIn_ScreenState extends State<SignIn_Screen> {
+  TextEditingController _emailTextController = TextEditingController();
+  TextEditingController _passwordTextController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(10, 5, 10, 5),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(height: 50.0),
+              Center(
+                  child: logo('assets/images/iitb.png'),
+              ),
+              SizedBox(height: 20.0),
+              use_TextField("Enter Email", Icons.person, false, _emailTextController),
+              SizedBox(height: 10.0),
+              use_TextField("Enter Password", Icons.lock, true, _passwordTextController),
+              SizedBox(height: 10.0),
+              button(context, true, (){
+                FirebaseAuth.instance.signInWithEmailAndPassword(
+                    email: _emailTextController.text,
+                    password: _passwordTextController.text,
+                ).then((value) {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => Home_page(),
+                  ),
+                  );
+                }).onError((error, stackTrace){
+                  print("Error ${error.toString()}");
+                });
+              }),
+              SizedBox(height: 5.0),
+              Row(
+                // crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Don't have an Account? ",
+                    style: TextStyle(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                      color: Colors.black,
+                      wordSpacing: 3.0,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: (){
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp_Screen(),
+                      ),
+                      );
+                    },
+                    child: Text(
+                      'SignUp',
+                      style: TextStyle(
+                        color: Colors.deepOrange,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                        wordSpacing: 5.0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      backgroundColor: Colors.white,
+    );
+  }
+
+}
+
+
+
+
+// *********    SignUp Page    ***********
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:login/database.dart';
+import 'Signin_page.dart';
+import 'Widgets_page.dart';
+
+class SignUp_Screen extends StatefulWidget {
+  const SignUp_Screen({super.key});
+
+  @override
+  State<SignUp_Screen> createState() => _SignUp_ScreenState();
+}
+
+class _SignUp_ScreenState extends State<SignUp_Screen> {
+  TextEditingController _userNameTextController = TextEditingController();
+  TextEditingController _emailTextController = TextEditingController();
+  TextEditingController _passwordTextController = TextEditingController();
+  // TextEditingController _confirmPasswordTextController = TextEditingController();
+
+
+  void saveUserDataToFirestore(String userId) {
+    String username = _userNameTextController.text;
+    String email = _emailTextController.text;
+
+    CollectionReference usersCollection = FirebaseFirestore.instance.collection('users');
+
+    usersCollection.doc(userId).set({
+      'username': username,
+      'email': email,
+    }).then((_) {
+      print("User data saved to Firestore!");
+    }).catchError((error) {
+      print("Error saving user data: $error");
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'SignUp',
+          style: TextStyle(
+            fontSize: 20.0,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+            wordSpacing: 5.0,
+            color: Colors.black,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.deepOrange[300],
+        elevation: 0.0,
+      ),
+      body: Container(
+          child: SingleChildScrollView(
+            child: Column(
+              // mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: 10.0),
+                logo('assets/images/iitb.png'),
+                SizedBox(height: 10.0),
+                use_TextField("Enter UserName", Icons.person, false, _userNameTextController),
+                SizedBox(height: 10.0),
+                use_TextField("Enter Email", Icons.email, false, _emailTextController),
+                SizedBox(height: 10.0),
+                use_TextField("Enter Password", Icons.lock, true, _passwordTextController),
+                SizedBox(height: 10.0),
+                // use_TextField("Confirm Password", Icons.lock, true, _confirmPasswordTextController),
+                button(context, false,(){
+                  FirebaseAuth.instance.createUserWithEmailAndPassword(
+                      email: _emailTextController.text,
+                      password: _passwordTextController.text,
+                  ).then((userCredential) {
+    // User registration successful, now save additional data in Firestore
+    //                     String userId = userCredential.user!.uid;
+    //                     saveUserDataToFirestore(userId);
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SignIn_Screen(),
+                    ),
+                    );
+                  }).onError((error, stackTrace) {
+                    print("Error ${error.toString()}");
+                  });
+                }),
+              ],
+            ),
+          ),
+      ),
+      backgroundColor: Colors.white,
+    );
+
+  }
+}
+
+
+
+// *********    Useful Widgets Page    ***********
+
+
+import 'package:flutter/material.dart';
+
+Image logo(String image){
+  return Image.asset(
+    image,
+    width: 200.0,
+    height: 200.0,
+  );
+}
+
+TextField use_TextField(String text, IconData icon, isPassword, TextEditingController contoller){
+  return TextField(
+    controller: contoller,
+    obscureText: isPassword,
+    enableSuggestions: isPassword,
+    autocorrect: isPassword,
+    cursorColor: Colors.black,
+    style: TextStyle(
+      color: Colors.white,
+    ),
+    decoration: InputDecoration(
+      prefixIcon: Icon(
+        icon,
+        color: Colors.white,
+      ),
+      hintText: text,
+      hintStyle: TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w100,
+        letterSpacing: 1.0,
+      ),
+      filled: true,
+      floatingLabelBehavior: FloatingLabelBehavior.never,
+      fillColor: Colors.grey[600],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15.0),
+        borderSide: BorderSide(width: 0.0, style: BorderStyle.none),
+      ),
+    ),
+    keyboardType: isPassword
+    ? TextInputType.visiblePassword
+    : TextInputType.emailAddress,
+  );
+}
+
+
+Container button(BuildContext context, bool isLogin, Function onTap){
+  return Container(
+    width: MediaQuery.of(context).size.width,
+    height: 50.0,
+    margin: EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(16.0),
+    ),
+    child: ElevatedButton(
+      onPressed: (){
+        onTap();
+      },
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.login,
+        ),
+        SizedBox(width: 12.0),
+        Text(
+          isLogin ? 'LOGIN' : 'SIGNUP',
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+      ],
+    ),
+      style: ButtonStyle(
+        backgroundColor: MaterialStateProperty.resolveWith((states){
+          if(states.contains(MaterialState.pressed)){
+            return Colors.red[900];
+          }
+          return Colors.pinkAccent;
+        }),
+        shape: MaterialStateProperty.all(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.0),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+Card template(category, amount, Function onTap){
+  return Card(
+    margin: EdgeInsets.all(14.0),
+    color: Colors.grey,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(55.0),
+    ),
+    child: Row(
+      children: [
+        Text(
+          '$category',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 17.0,
+            fontWeight: FontWeight.w200,
+            letterSpacing: 1.0,
+            wordSpacing: 3.0,
+          ),
+        ),
+        SizedBox(width: 20.0),
+        Text(
+          '$amount',
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: 25.0,
+              fontWeight: FontWeight.w200,
+              letterSpacing: 1.0,
+              wordSpacing: 3.0,
+            ),
+        ),
+        SizedBox(width: 5.0),
+        Icon(
+          Icons.delete,
+          size: 20.0,
+        ),
+      ],
+    ),
+  );
+}
+
+
+// *********    HomePage    ***********
+
+import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'Widgets_page.dart';
+
+class Home_page extends StatefulWidget {
+  const Home_page({super.key});
+
+  @override
+  State<Home_page> createState() => _Home_pageState();
+}
+class _Home_pageState extends State<Home_page> {
+  List<String> collectedData= [];
+  int total_Amount =0;
+  String userId = "";
+
+  Future<void> saveDataToFirestore(String category, String amount) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        userId = user.uid;
+
+        final expenseData = {
+          'category': category,
+          'amount': amount,
+        };
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId).set(expenseData);
+      }
+    } catch (e) {
+      // Handle errors, if any
+      print('Error saving data to Firestore: $e');
+    }
+  }
+
+
+  Future<void> _Add_Expense(BuildContext context)async {
+    String category = '';
+    String amount = '';
+    await showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            backgroundColor: Colors.white60,
+            title: Text(
+              'Add Expense',
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 25.0,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            content: Column(
+              children: [
+                TextField(
+                  onChanged: (value) {
+                    category = value;
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Enter Category',
+                    hintStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.0,
+                      letterSpacing: 1.0,
+                    ),
+                    filled: true,
+                    floatingLabelBehavior: FloatingLabelBehavior.never,
+                    fillColor: Colors.grey,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                      borderSide: BorderSide(
+                          width: 0.0, style: BorderStyle.none),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20.0),
+                TextField(
+                  onChanged: (value) {
+                    amount = value;
+                  },
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'Enter the Amount',
+                    hintStyle: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20.0,
+                      letterSpacing: 1.0,
+                    ),
+                    filled: true,
+                    floatingLabelBehavior: FloatingLabelBehavior.never,
+                    fillColor: Colors.grey,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                      borderSide: BorderSide(
+                          width: 0.0, style: BorderStyle.none),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  setState(() {
+                    collectedData.add(
+                      '$category        $amount',
+                    );
+                    total_Amount += int.parse(amount);
+                  });
+                },
+                child: Icon(
+                  Icons.check,
+                ),
+              ),
+            ],
+
+          );
+        }
+    );
+    // if (category.isNotEmpty && amount.isNotEmpty) {
+    //   setState(() {
+    //     collectedData.add('$category        $amount');
+    //     total_Amount += int.parse(amount);
+    //   });
+      await saveDataToFirestore(category, amount);
+    }
+
+
+
+    Future<void> removeDataFromFirestore(int index) async {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          userId = user.uid;
+
+          final expenseData = {
+            'category': collectedData[index].split('        ')[0].trim(),
+            'amount': collectedData[index].split('        ')[1].trim(),
+          };
+
+          await FirebaseFirestore.instance.collection('users').doc(userId).update({
+            'expenses': FieldValue.arrayRemove([expenseData]),
+          });
+        }
+      } catch (e) {
+        // Handle errors, if any
+        print('Error removing data from Firestore: $e');
+      }
+    }
+
+  void _deleteItem(int index) {
+    setState(() {
+      if (index >= 0 && index < collectedData.length) {
+        String item = collectedData[index];
+        int amount = int.tryParse(item.split('        ')[1].trim()) ?? 0;
+        total_Amount -= amount;
+        collectedData.removeAt(index);
+        removeDataFromFirestore(index);
+      }
+    });
+  }
+
+
+    @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Expenses',
+          style: TextStyle(
+            color: Colors.black87,
+            fontSize: 30.0,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.0,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.deepOrange[300],
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 5, 8, 5),
+          child: Column(
+            children: [
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Container(
+                    width: 400.0,
+                    height: 40.0,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.greenAccent,
+                        borderRadius: BorderRadius.circular(25.0),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Total Amount: ',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 25,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          SizedBox(width: 40),
+                          Text(
+                            '$total_Amount',
+                            style: TextStyle(
+                              color: Colors.black87,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(width: 20.0),
+                          Icon(
+                            Icons.expand_circle_down_outlined,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(child: ListView.builder(
+                  itemCount: collectedData.length,
+                  itemBuilder: (context, index) {
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 320.0,
+                          height: 35.0,
+                          margin: EdgeInsets.all(6.0),
+                          decoration: BoxDecoration(
+                            color: Colors.grey,
+                            borderRadius: BorderRadius.circular(5.0),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                collectedData[index],
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 25.0,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.0,
+                                  wordSpacing: 3.0,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 10.0),
+                        GestureDetector(
+                          onTap: () {
+                            _deleteItem(index);
+                          },
+                          child: Icon(
+                            Icons.delete,
+                            size: 20.0,
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+              ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _Add_Expense(context);
+        },
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+  }
+
